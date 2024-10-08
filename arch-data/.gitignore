@@ -1,0 +1,6 @@
+# Ignore validator testnet files
+validator-*/
+leader/testnet/*
+
+# Except the one containing the private key
+!leader/testnet/arch-secret

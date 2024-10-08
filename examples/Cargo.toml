@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+
+members = [ 
+    #"counter", 
+    "helloworld", 
+    #"counter", 
+    #"bank_account", 
+    "common",
+    "liquiditypool"
+, "raffle"]
