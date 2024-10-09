@@ -15,8 +15,32 @@ use arch_program::{
     transaction_to_sign::TransactionToSign,
     utxo::UtxoMeta,
 };
+use std::collections::HashSet;
 use bitcoin::{self, Transaction};
 use borsh::{BorshDeserialize, BorshSerialize};
+
+fn generate_random_numbers(seed: u64) -> Vec<u64> {
+    let mut unique_numbers = HashSet::new();
+    let mut rng_state = seed;
+
+    // Generate 5 unique numbers in the range of 1 to 64
+    while unique_numbers.len() < 5 {
+        rng_state = rng_state.wrapping_mul(48271) % 0x7fffffff; // LCG parameters
+        let num = rng_state % 64 + 1; // Get a number between 1 and 64
+        unique_numbers.insert(num);
+    }
+
+    // Convert HashSet to Vec and sort it
+    let mut numbers: Vec<u64> = unique_numbers.into_iter().collect();
+    numbers.sort_unstable();
+
+    // Generate one number in the range of 1 to 23
+    rng_state = rng_state.wrapping_mul(48271) % 0x7fffffff; // Continue LCG
+    let additional_num: u64 = rng_state % 23 + 1; // Get a number between 1 and 23
+    numbers.push(additional_num);
+
+    numbers
+}
 
 entrypoint!(lottery_bid);
 pub fn lottery_bid(
@@ -36,9 +60,17 @@ pub fn lottery_bid(
 
     let new_data = format!("Address {}, Number {:?}", params.address, params.user_select_number);
 
-    let data_len = account.data.try_borrow().unwrap().len();
-    if new_data.as_bytes().len() > data_len {
-        account.realloc(new_data.len(), true)?;
+    // Borrow the account data
+    let account_data = account.data.try_borrow().unwrap();
+
+    // Create a new string that combines the existing data with the new data
+    let existing_data = String::from_utf8_lossy(&account_data);
+    let combined_data = format!("{}; {}", existing_data, new_data);
+
+    msg!("Combined Data {:?}", combined_data);
+
+    if combined_data.as_bytes().len() > account_data.len() {
+        account.realloc(combined_data.len(), true)?;
     }
 
     let script_pubkey = get_account_script_pubkey(account.key);
@@ -48,7 +80,9 @@ pub fn lottery_bid(
         .data
         .try_borrow_mut()
         .unwrap()
-        .copy_from_slice(new_data.as_bytes());
+        .copy_from_slice(combined_data.as_bytes());
+
+    msg!("Account Data {:?}", account_data);
 
     let mut tx = get_state_transition_tx(accounts);
     tx.input.push(user_tx.input[0].clone());
@@ -64,6 +98,16 @@ pub fn lottery_bid(
     msg!("tx_to_sign{:?}", tx_to_sign);
 
     set_transaction_to_sign(accounts, tx_to_sign);
+
+    Ok(())
+}
+
+pub fn select_winner(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+) -> Result<(), ProgramError> {
+    let random_numbers = generate_random_numbers(8012);
+    println!("{:?}", random_numbers);
 
     Ok(())
 }
