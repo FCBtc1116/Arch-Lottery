@@ -14,8 +14,7 @@ You can find Lottery Arch Network simple smart contract in https://github.com/FC
 
 
 ## Build program
-If everything builds correctly, the `cargo-build-sbf` output should resemble the following:
-![](.readme_assets/helloworld-build.gif)
+Run `cargo-build-sbf`
 
 - Submit a test arch-network transaction, executing the `Lottery` program:
 ```bash
